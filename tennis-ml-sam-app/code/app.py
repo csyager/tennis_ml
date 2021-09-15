@@ -3,6 +3,14 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import joblib
+import json
+import boto3
+import os
+
+s3 = boto3.client('s3')
+s3_bucket = os.environ['s3_bucket']
+model_name = os.environ['model_name']
+temp_file_path = '/tmp/' + model_name
 
 def get_target_stats(player_names: list):
     # beautiful soup configuration
@@ -71,9 +79,26 @@ def get_target_stats(player_names: list):
 
     return [val for pair in zip(stats_list[0], stats_list[1]) for val in pair]
 
-# load trained model
-clf = joblib.load(sys.argv[1])
+def lambda_handler(event, context):
 
-target_stats = get_target_stats([sys.argv[2], sys.argv[3]])
-predicted_winner_number = clf.predict([target_stats])[0]
-print(predicted_winner_number)
+    # load trained model
+    s3.download_file(s3_bucket, model_name, temp_file_path)
+    with open(temp_file_path, 'rb') as f:
+        model = joblib.load(f)
+
+    try:
+        target_stats = get_target_stats([event['queryStringParameters']['p1'],event['queryStringParameters']['p2']])
+        predicted_winner_number = model.predict([target_stats])[0]
+        if (predicted_winner_number == 1):
+            predicted_winner_name = event['queryStringParameters']['p1']
+        else:
+            predicted_winner_name = event['queryStringParameters']['p2']
+        response_dict = {
+            "winnerName": predicted_winner_name
+        }
+        return {'statusCode': 200, 'body': json.dumps(response_dict) }
+    except TypeError as e:
+        response_dict = {
+            "errorMessage": "One of the provided players could not be found.  Make sure that their names are spelled as they appear in the tennisabstract.com player search"
+        }
+        return {'statusCode': 404, 'body': json.dumps(response_dict) }

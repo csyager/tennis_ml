@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  tennis-ml-sam-app
+
+  Sample SAM Template for tennis-ml-sam-app
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  TennisClassifierFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: code
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      MemorySize: 1024
+      Role: arn:aws:iam::373669830907:role/service-role/tennisMLPrediction-role-kxaumuzy
+      Environment:
+        Variables:
+          s3_bucket: tennis-ml-layers
+          model_name: model.pkl
+      Events:
+        TennisClassifier:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /classify
+            Method: post
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  TennisClassifierApi:
+    Description: "API Gateway endpoint URL for Prod stage for TennisClassifierFunction"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/classify/"

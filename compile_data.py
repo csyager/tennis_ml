@@ -201,4 +201,5 @@ def build_dataframe(stats_dict: dict):
 if __name__ == "__main__":
     stats_dict = compile_statistics()
     data_frame = build_dataframe(stats_dict)
+    data_frame = data_frame[(data_frame != 0).all(1)]
     data_frame.to_csv(output_filename, encoding='utf-8', index=False)
