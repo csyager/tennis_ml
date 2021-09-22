@@ -86,6 +86,10 @@ def lambda_handler(event, context):
     with open(temp_file_path, 'rb') as f:
         model = joblib.load(f)
 
+    response_headers = {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    }
     try:
         target_stats = get_target_stats([event['queryStringParameters']['p1'],event['queryStringParameters']['p2']])
         predicted_winner_number = model.predict([target_stats])[0]
@@ -96,9 +100,9 @@ def lambda_handler(event, context):
         response_dict = {
             "winnerName": predicted_winner_name
         }
-        return {'statusCode': 200, 'body': json.dumps(response_dict) }
+        return {'statusCode': 200, 'headers': response_headers, 'body': json.dumps(response_dict) }
     except TypeError as e:
         response_dict = {
             "errorMessage": "One of the provided players could not be found.  Make sure that their names are spelled as they appear in the tennisabstract.com player search"
         }
-        return {'statusCode': 404, 'body': json.dumps(response_dict) }
+        return {'statusCode': 404, 'headers': response_headers, 'body': json.dumps(response_dict) }
